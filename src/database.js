@@ -17,6 +17,31 @@ function getClient() {
     return supabase;
 }
 
+async function getOutletById(outletId) {
+    if (!outletId) return null;
+    const db = getClient();
+    const { data, error } = await db
+        .from('outlets')
+        .select('outlet_id, outlet_name')
+        .eq('outlet_id', outletId)
+        .limit(1);
+
+    if (error) {
+        logger.error({ error, outletId }, 'Error fetching outlet by id');
+        return null;
+    }
+    return data && data.length > 0 ? data[0] : null;
+}
+
+async function attachOutletName(user) {
+    if (!user?.outlet_id) return user;
+    const outlet = await getOutletById(user.outlet_id);
+    if (outlet?.outlet_name) {
+        user.outlet_name = outlet.outlet_name;
+    }
+    return user;
+}
+
 // ---------------------------------------------------------------------------
 // User lookup
 // ---------------------------------------------------------------------------
@@ -37,7 +62,7 @@ async function getUserByPhone(phone) {
         return null;
     }
 
-    if (data && data.length > 0) return data[0];
+    if (data && data.length > 0) return attachOutletName(data[0]);
 
     // Fallback: try without country code prefix (first 2 digits)
     if (cleaned.length > 10) {
@@ -52,7 +77,7 @@ async function getUserByPhone(phone) {
             logger.error({ error: fbErr }, 'Fallback phone lookup failed');
             return null;
         }
-        if (fallback && fallback.length > 0) return fallback[0];
+        if (fallback && fallback.length > 0) return attachOutletName(fallback[0]);
     }
 
     return null;

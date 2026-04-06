@@ -46,7 +46,10 @@ async function checkPhone(phone) {
     try {
         const user = await db.getUserByPhone(phone);
         if (user && user.outlet_id) {
-            logger.info({ phone, outletId: user.outlet_id }, 'Registered user identified');
+            logger.info(
+                { phone, outletId: user.outlet_id, outletName: user.outlet_name },
+                'Registered user identified'
+            );
             result = { registered: true, user };
         } else {
             logger.info({ phone }, 'Phone not registered or no outlet linked');
@@ -69,6 +72,7 @@ const REGISTERED_SYSTEM_PROMPT = `You are the Karobar AI assistant on WhatsApp â
 
 RULES:
 - You ONLY answer questions related to Karobar and the user's restaurant business.
+- Personalisation: You know the customer's name and their outlet (restaurant) name. Use them naturally â€” e.g. greet by first name when appropriate, and refer to their outlet by name when giving numbers or tips ("at *Your Outlet*", "for *Spice Kitchen*"). Do not overuse names; one or two touches per reply is enough.
 - If the user sends a greeting, greet them back warmly by name and suggest what they can ask (sales, items, expenses).
 - If the user asks for help, list your capabilities briefly.
 - If the user asks anything unrelated to Karobar or their restaurant, politely decline in one line and redirect.
@@ -183,6 +187,7 @@ const TOOL_DISPATCH = {
 async function handleRegisteredUser(text, user) {
     const today = new Date().toISOString().slice(0, 10);
     const userName = user.name || user.username || 'there';
+    const firstName = userName.split(/\s+/)[0] || 'there';
     const outletName = user.outlet_name || 'your restaurant';
     const outletId = user.outlet_id;
 
@@ -192,8 +197,9 @@ async function handleRegisteredUser(text, user) {
             content:
                 REGISTERED_SYSTEM_PROMPT +
                 `\n\nToday's date: ${today}` +
-                `\nUser: ${userName}` +
-                `\nOutlet: ${outletName}`,
+                `\nCustomer name: ${userName}` +
+                `\nFirst name (for greetings): ${firstName}` +
+                `\nOutlet / restaurant name: ${outletName}`,
         },
         { role: 'user', content: text },
     ];
