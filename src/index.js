@@ -11,6 +11,7 @@ const qrcode = require('qrcode-terminal');
 
 const logger = require('./logger');
 const { registerMessageHandler } = require('./messageHandler');
+const { register: registerLidMapping } = require('./lidResolver');
 
 const AUTH_DIR = './auth_info';
 
@@ -87,6 +88,11 @@ async function startSocket() {
     });
 
     sock.ev.on('creds.update', saveCreds);
+
+    sock.ev.on('chats.phoneNumberShare', ({ lid, jid }) => {
+        logger.info({ lid, jid }, 'Phone number share received');
+        registerLidMapping(lid, jid);
+    });
 
     registerMessageHandler(sock);
 
