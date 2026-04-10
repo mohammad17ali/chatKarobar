@@ -18,9 +18,13 @@ services:
     volumes:
       # Persist WhatsApp session (required across restarts)
       - ./auth_info:/app/auth_info
-      # Optional: persist logs on host
-      - ./logs:/app/logs
+      # Named volume: bind-mount ./logs is owned by host user (e.g. 1000) while the
+      # image runs as nodejs (1001), which causes EACCES on /app/logs/app.log.
+      - chatkarobar_logs:/app/logs
     environment:
       # Override or add vars here if you prefer not to use .env
       NODE_ENV: production
     # Baileys opens outbound WebSockets; no ports exposed unless you add an HTTP API later
+
+volumes:
+  chatkarobar_logs:
