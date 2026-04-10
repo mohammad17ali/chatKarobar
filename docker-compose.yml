@@ -4,7 +4,10 @@
 # 2. First run with a TTY so you can scan the WhatsApp QR code:
 #      docker compose run --rm -it chatkarobar
 #    Or: docker compose up  (interactive terminal attached)
-# 3. After pairing, auth persists in ./auth_info on the host.
+# 3. After pairing, auth persists in the named volume chatkarobar_auth (same UID
+#    issue as logs if you bind-mount ./auth_info: host owns files, nodejs in
+#    container cannot write creds.json). Override locally with a compose override
+#    if you need ./auth_info on the host.
 #
 services:
   chatkarobar:
@@ -16,10 +19,9 @@ services:
     env_file:
       - .env
     volumes:
-      # Persist WhatsApp session (required across restarts)
-      - ./auth_info:/app/auth_info
-      # Named volume: bind-mount ./logs is owned by host user (e.g. 1000) while the
-      # image runs as nodejs (1001), which causes EACCES on /app/logs/app.log.
+      # Named volumes: bind-mount ./auth_info or ./logs from the host is usually
+      # owned by UID 1000 while the image runs as nodejs (1001) → EACCES on creds.json / app.log.
+      - chatkarobar_auth:/app/auth_info
       - chatkarobar_logs:/app/logs
     environment:
       # Override or add vars here if you prefer not to use .env
@@ -27,4 +29,5 @@ services:
     # Baileys opens outbound WebSockets; no ports exposed unless you add an HTTP API later
 
 volumes:
+  chatkarobar_auth:
   chatkarobar_logs:
